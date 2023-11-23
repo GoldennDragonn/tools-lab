@@ -21,7 +21,6 @@ local sources = {
   -- -- ansible
   -- b.diagnostics.ansiblelint, -- for Ansible linting
 
-  
 }
 
 null_ls.setup {

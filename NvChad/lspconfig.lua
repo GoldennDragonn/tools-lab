@@ -94,6 +94,5 @@ lspconfig.tflint.setup {
   capabilities = capabilities,
   cmd = {"tflint", "--langserver"},
   filetypes = { "terraform" },
-  
 }
 

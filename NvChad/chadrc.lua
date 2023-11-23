@@ -8,7 +8,7 @@ M.ui = {
   theme = "gatekeeper",
   theme_toggle = { "gatekeeper", "one_light" },
   statusline = {
-    theme = "vscode_colored", 
+    theme = "vscode_colored",
   },
 
   hl_override = highlights.override,
