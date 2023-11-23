@@ -1,0 +1,12 @@
+brew install neovim
+brew install nodejs
+brew install ripgrep
+brew install ansible-language-server
+brew link --overwrite ansible-language-server
+brew install yaml-language-server
+brew install bash-language-server
+
+brew install tflint
+brew install terraform-ls
+:TSInstall terraform
+:TSInstall hcl

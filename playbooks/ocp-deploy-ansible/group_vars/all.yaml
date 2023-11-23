@@ -1,0 +1,17 @@
+
+basedomain: example.local
+metadata_name: test-ocp
+pullsecret: '{"auths": {"fake_registry": {"auth": "fake_auth_token"}}}'
+ssh_key: 'ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDfakekeyvaluehere'
+additionaltrustbundle: |
+    -----BEGIN CERTIFICATE-----
+    MIIDfakecertificatevaluehere
+    -----END CERTIFICATE-----
+compute_replicas: 3
+
+ssh_key_name: my_ssh_key
+registry_url: registry.access.redhat.com
+registry_username: yakovbwork
+registry_password: Yaba7361!
+installation_directory: ocp-install
+ansible_user: ec2-user

@@ -1,0 +1,172 @@
+---
+- name: Deploy RKE2 Server on Master Nodes
+  hosts: master_nodes
+  gather_facts: true  # Enable gathering facts
+
+  vars_prompt:
+    - name: remoteuser
+      prompt: "Which user should Ansible connect as?"
+      private: no
+
+    - name: local_path_input
+      prompt: "Please enter the local path to the files"
+      private: no
+
+  remote_user: "{{ remoteuser }}"
+  become: yes
+
+  tasks:
+    # Step 1: Copy the files to the Server Nodes
+    # - name: Prompt for local path
+    #   pause:
+    #     prompt: "Please enter the local path to the files:"
+    #   register: local_path_input
+
+    - name: Create rke2-install directory in user's home
+      file:
+        path: "~{{ remoteuser }}/rke2-install"
+        state: directory
+        owner: "{{ remoteuser }}"
+        group: "{{ remoteuser }}"
+        mode: '0755'
+
+    - name: Copy files to rke2-install directory in user's home
+      copy:
+        src: "{{ local_path_input }}/"
+        dest: "~{{ remoteuser }}/rke2-install/"
+        owner: "{{ remoteuser }}"
+        group: "{{ remoteuser }}"
+        mode: '0644'
+
+    # Step 2: Run the script to install the server and deploy the images
+    - name: Install RKE2 Server and Deploy Images
+      command:
+        cmd: sh /home/{{ remoteuser }}/rke2-install/install.sh -
+        warn: no
+      environment:
+        INSTALL_RKE2_ARTIFACT_PATH: /home/{{ remoteuser }}/rke2-install
+
+
+    # Step 3: Set kernel parameters
+    - name: Copy rke2-cis-sysctl.conf to /etc/sysctl.d/
+      copy:
+        src: /usr/local/share/rke2/rke2-cis-sysctl.conf
+        dest: /etc/sysctl.d/60-rke2-cis.conf
+        owner: root
+        group: root
+        mode: '0644'
+        remote_src: yes
+
+    - name: Restart systemd-sysctl
+      service:
+        name: systemd-sysctl
+        state: restarted
+
+    # Step 4: Create etcd user
+    - name: Create etcd user
+      user:
+        name: etcd
+        comment: "etcd user"
+        shell: /sbin/nologin
+        system: yes
+        create_home: no
+
+
+    # Step 5: Enable the RKE2 Server Service
+    - name: Enable rke2-server service
+      systemd:
+        name: rke2-server
+        enabled: yes
+
+    # Step 6: Create config.yaml for RKE2 Server
+    - name: Ensure /etc/rancher/rke2/ directory exists
+      file:
+        path: /etc/rancher/rke2/
+        state: directory
+        owner: root
+        group: root
+        mode: '0755'
+
+    - name: Create /etc/rancher/rke2/config.yaml for RKE2 Server
+      copy:
+        content: |
+          profile: "cis-1.23"
+          cni: calico
+          disable: rke2-canal
+        dest: /etc/rancher/rke2/config.yaml
+        owner: root
+        group: root
+        mode: '0644'
+
+    # Step 7: Start the RKE2 Server Service
+    - name: Start rke2-server service
+      systemd:
+        name: rke2-server
+        state: started
+
+    # Step 9: Simlink Config Files
+    - name: Create ~/.kube directory
+      file:
+        path: "~{{ remoteuser }}/.kube"
+        state: directory
+        owner: "{{ remoteuser }}"
+        group: "{{ remoteuser }}"
+        mode: '0755'
+    
+    - name: Create symlink for rke2.yaml to ~/.kube/config for user
+      file:
+        src: /etc/rancher/rke2/rke2.yaml
+        dest: "~{{ remoteuser }}/.kube/config"
+        state: link
+        force: yes
+
+    - name: Create symlink for crictl.yaml to /etc/crictl.yaml
+      file:
+        src: /var/lib/rancher/rke2/agent/etc/crictl.yaml
+        dest: /etc/crictl.yaml
+        state: link
+
+    - name: Set permissions for ~/.kube/config for user
+      file:
+        path: "~{{ remoteuser }}/.kube/config"
+        mode: '0600'
+        owner: "{{ remoteuser }}"
+        group: "{{ remoteuser }}"
+
+    # Step 10: Simlink Executables
+    - name: Create symlink for kubectl
+      shell: |
+        ln -sf $(find /var/lib/rancher/rke2/data/ -name kubectl) /usr/local/bin/kubectl
+      args:
+        warn: no
+
+    - name: Create symlink for crictl
+      shell: |
+        ln -sf $(find /var/lib/rancher/rke2/data/ -name crictl) /usr/local/bin/crictl
+      args:
+        warn: no
+
+    - name: Create symlink for ctr
+      shell: |
+        ln -sf $(find /var/lib/rancher/rke2/data/ -name ctr) /usr/local/bin/ctr
+      args:
+        warn: no
+
+    - name: Create symlink for containerd
+      shell: |
+        ln -sf $(find /var/lib/rancher/rke2/data/ -name containerd) /usr/local/bin/containerd
+      args:
+        warn: no
+
+
+    # Fetch the RKE2 Server Token
+    - name: Fetch RKE2 server node-token
+      command: cat /var/lib/rancher/rke2/server/node-token
+      register: rke2_token
+      changed_when: false
+
+    # Display the token
+    - name: Display RKE2 server node-token
+      debug:
+        msg: "Please copy this token to use with Worker Nodes config.yaml: {{ rke2_token.stdout }}"
+

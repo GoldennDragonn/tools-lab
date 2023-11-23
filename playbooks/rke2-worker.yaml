@@ -1,0 +1,131 @@
+---
+- name: Deploy RKE2 Agent on Worker Nodes
+  hosts: worker_nodes
+  become: yes
+  gather_facts: true  # Enable gathering facts
+
+  vars_prompt:
+    - name: master_ip_input
+      prompt: "Please enter the Master Node IP"
+      private: no
+
+    - name: token_input
+      prompt: "Please enter the token"
+      private: no
+
+    - name: local_path_input
+      prompt: "Please enter the local path to the files"
+      private: no
+
+  tasks:
+    # # Step 1: Copy the files to the Worker Nodes
+    # - name: Prompt for local path
+    #   pause:
+    #     prompt: "Please enter the local path to the files:"
+    #   register: local_path_input
+    #   when: inventory_hostname == groups['worker_nodes'][0]
+
+    # - name: Set global variable local_path
+    #   set_fact:
+    #     local_path: "{{ local_path_input.user_input }}"
+    #   when: inventory_hostname == groups['worker_nodes'][0]
+
+    - name: Create rke2-install directory on worker nodes
+      file:
+        path: /root/rke2-install
+        state: directory
+        owner: root
+        group: root
+        mode: '0755'
+
+    - name: Copy files to rke2-install directory on worker nodes
+      copy:
+        # src: "{{ hostvars[groups['worker_nodes'][0]]['local_path'] }}/"
+        src: "{{ local_path_input }}/"
+        dest: /root/rke2-install/
+        owner: root
+        group: root
+        mode: '0644'
+
+    # Step 2: Run the script to install the agent and deploy the images
+    - name: Install RKE2 Agent and Deploy Images
+      command:
+        cmd: sh /root/rke2-install/install.sh -
+        warn: no
+      environment:
+        INSTALL_RKE2_ARTIFACT_PATH: /root/rke2-install
+        INSTALL_RKE2_TYPE: agent
+
+
+    # Step 3: Set kernel parameters
+    - name: Copy rke2-cis-sysctl.conf to /etc/sysctl.d/
+      copy:
+        src: /usr/local/share/rke2/rke2-cis-sysctl.conf
+        dest: /etc/sysctl.d/60-rke2-cis.conf
+        owner: root
+        group: root
+        mode: '0644'
+        remote_src: yes
+
+    - name: Restart systemd-sysctl
+      service:
+        name: systemd-sysctl
+        state: restarted
+
+    # Step 4: Create etcd user
+    - name: Create etcd user
+      user:
+        name: etcd
+        comment: "etcd user"
+        shell: /sbin/nologin
+        system: yes
+        create_home: no
+
+    # Step 5: Enable the RKE2 Agent Service
+    - name: Enable rke2-agent service
+      systemd:
+        name: rke2-agent
+        enabled: yes
+
+    # Step 6: Create config.yaml
+    # - name: Prompt for master IP
+    #   pause:
+    #     prompt: "Please enter the master IP:"
+    #   register: master_ip_input
+
+    # - name: Prompt for token
+    #   pause:
+    #     prompt: "Please enter the token:"
+    #   register: token_input
+
+    - name: Ensure /etc/rancher/rke2/ directory exists
+      file:
+        path: /etc/rancher/rke2/
+        state: directory
+        owner: root
+        group: root
+        mode: '0755'
+
+
+    #in case of 1 NIC
+    - name: Get the IP address for the current node from the inventory
+      set_fact:
+        node_ip: "{{ ansible_default_ipv4.address }}" 
+
+    - name: Create /etc/rancher/rke2/config.yaml
+      copy:
+        content: |
+          profile: "cis-1.23"
+          server: https://{{ master_ip_input }}:9345
+          token: {{ token_input }}
+          node-ip: "{{ node_ip }}"
+        dest: /etc/rancher/rke2/config.yaml
+        owner: root
+        group: root
+        mode: '0644'
+
+    # Step 7: Start the RKE2 Agent Service
+    - name: Start rke2-agent service
+      systemd:
+        name: rke2-agent
+        state: started

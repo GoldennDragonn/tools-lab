@@ -1,0 +1,21 @@
+---
+- name: Run preparations role
+  hosts: localhost
+  gather_facts: no
+  roles:
+    - preparations
+
+- name: Prompt user for continuation
+  hosts: localhost
+  gather_facts: no
+
+  tasks:
+    - name: Pause for user input
+      pause:
+        prompt: "Preparations completed. Make sure to update group_vars/all.yml. Are you ready to continue with the configuration role? (y/n)"
+      register: user_input
+
+    - name: Include configuration role if user wants to continue
+      include_role:
+        name: configuration
+      when: user_input.user_input.lower() == "y"

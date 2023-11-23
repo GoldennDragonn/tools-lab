@@ -1,0 +1,51 @@
+---
+- name: Install kubectl, helm, and rke on localhost
+  hosts: localhost
+  gather_facts: false
+
+  tasks:
+    - name: Install dependencies
+      become: true
+      apt:
+        name:
+          - apt-transport-https
+          - ca-certificates
+          - curl
+          - gnupg
+          - lsb-release
+
+    - name: Add Kubernetes apt key
+      become: true
+      apt_key:
+        url: https://packages.cloud.google.com/apt/doc/apt-key.gpg
+
+    - name: Add Kubernetes apt repository
+      become: true
+      apt_repository:
+        repo: "deb https://apt.kubernetes.io/ kubernetes-xenial main"
+        state: present
+
+    - name: Install kubectl
+      become: true
+      apt:
+        name: kubectl
+        state: present
+
+    - name: Download Helm installation script
+      become: true
+      get_url:
+        url: https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3
+        dest: /tmp/get_helm.sh
+        mode: 'u+x'
+
+    - name: Install Helm
+      become: true
+      script: /tmp/get_helm.sh
+
+    - name: Install rke
+      become: true
+      get_url:
+        url: https://github.com/rancher/rke/releases/download/v1.3.19/rke_linux-amd64
+        dest: /usr/local/bin/rke
+        mode: 'u+x,g+x'
+      

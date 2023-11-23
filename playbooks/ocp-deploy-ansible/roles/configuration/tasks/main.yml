@@ -1,0 +1,32 @@
+
+---
+- name: Generate install-config.yaml
+  template:
+    src: install-config.yaml.j2
+    dest: "/home/{{ansible_user}}/{{ installation_directory }}/install-config.yaml"
+    
+- name: Create manifests
+  command:
+    cmd: "/usr/local/bin/openshift-install create manifests --dir=/home/{{ ansible_user }}/{{ installation_directory }}"
+
+- name: Create ignition-configs
+  command:
+    cmd: "/usr/local/bin/openshift-install create ignition-configs --dir=/home/{{ ansible_user }}/{{ installation_directory }}"
+
+- name: Copy ignition files to httpd directory
+  command:
+    cmd: "cp *.ign /var/www/html/"
+  become: yes
+  args:
+    chdir: "/home/{{ ansible_user }}/{{ installation_directory }}"
+    
+- name: Set permissions for ignition files in httpd directory
+  command:
+    cmd: "chmod 777 /var/www/html/*.ign"
+  become: yes
+
+- name: Restart httpd service
+  service:
+    name: httpd
+    state: restarted
+    enabled: yes

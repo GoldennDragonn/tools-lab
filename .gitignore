@@ -1,0 +1,10 @@
+.vagrant/
+rke2-images.linux-amd64.tar.gz
+rke2-images.linux-amd64.tar.zst
+rke2.linux-amd64.tar.gz
+sha256sum-amd64.txt
+*.csv
+scripts/.~lock.eks-tsgs-cicd-report.csv#
+scripts/.~lock.eks-tsgs-cicd-aws-viewers-report.csv#
+.vscode/
+/rke2-terraform/.terraform/providers/registry.terraform.io/hashicorp/aws/5.21.0/linux_amd64/terraform-provider-aws_v5.21.0_x5

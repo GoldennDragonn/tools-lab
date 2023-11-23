@@ -1,0 +1,39 @@
+
+apiVersion: v1
+baseDomain: {{ basedomain }}
+controlPlane:
+  name: master
+  hyperthreading: Enabled
+  replicas: 3
+compute:
+- name: worker
+  hyperthreading: Enabled
+  replicas: {{ compute_replicas }}
+metadata:
+  name: {{ metadata_name }}
+networking:
+  clusterNetworks:
+  - cidr: 10.128.0.0/14
+    hostPrefix: 23
+  machineNetwork:
+  - cidr: 172.18.0.0/16
+  networkType: OpenShiftSDN
+  serviceNetwork:
+  - 172.30.0.0/16
+platform:
+  none: {}
+fips: false
+pullSecret:  '{{ pullsecret }}'
+sshKey:  '{{ ssh_key }}'
+additionalTrustBundle: |
+    {{ additionaltrustbundle | indent(4) }}
+imageContentSources:
+  - mirrors:
+    - registry.arik.com:5000/ubi8
+    source: registry.access.redhat.com/ubi8
+  - mirrors:
+    - registry.arik.com:5000/openshift/release-images
+    source: quay.io/openshift-release-dev/ocp-release
+  - mirrors:
+    - registry.arik.com:5000/openshift/release
+    source: quay.io/openshift-release-dev/ocp-v4.0-art-dev

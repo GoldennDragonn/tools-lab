@@ -1,0 +1,57 @@
+
+---
+- name: Generate SSH key
+  command:
+    cmd: "ssh-keygen -t rsa -f ~/.ssh/{{ ssh_key_name }} -N ''"
+    creates: "~/.ssh/{{ ssh_key_name }}"
+  when: ssh_key_name is defined
+
+- name: Check if httpd is installed
+  yum:
+    name: httpd
+    state: present
+  become: yes
+
+- name: Check if httpd is running
+  service:
+    name: httpd
+    state: started
+    enabled: yes
+  become: yes
+
+- name: Login to private registry
+  command:
+    cmd: "podman login -u {{ registry_username }} -p {{ registry_password }} {{ registry_url }} --tls-verify=false"
+    creates: "/run/user/1000/containers/auth.json"
+  become: yes
+  become_user: "{{ ansible_user }}"
+
+- name: Create .docker directory
+  file:
+    path: "~/.docker"
+    state: directory
+    mode: '0755'
+
+- name: Copy auth.json to .docker directory
+  copy:
+    src: "/run/user/1000/containers/auth.json"
+    dest: "~/.docker/config.json"
+    mode: '0644'
+
+- name: Ensure directories exist
+  file:
+    path: "/home/{{ ansible_user }}/{{ installation_directory }}/{{ item }}"
+    state: directory
+    mode: '0755'
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    recurse: yes
+  loop:
+    - ""
+    - "infra-configs"
+    - "ntp"
+    - "htpasswd"
+    - "certs"
+    - "operators"
+    - "etcdbkp"
+    - "trident"

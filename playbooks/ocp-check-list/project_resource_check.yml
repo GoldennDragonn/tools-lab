@@ -1,0 +1,42 @@
+---
+- name: Set project
+  command: "oc project {{ project.name }}"
+
+- name: Check ConfigMaps
+  command: "oc get configmap {{ item }}"
+  register: configmap_result
+  failed_when: false
+  ignore_errors: true
+  with_items: "{{ project.configmaps }}"
+
+- name: Display ConfigMap results
+  debug:
+    msg: "ConfigMap {{ item.item }} exists in project {{ project.name }}"
+  when: "'not found' not in item.stderr"
+  with_items: "{{ configmap_result.results }}"
+
+- name: Check Secrets
+  command: "oc get secret {{ item }}"
+  register: secret_result
+  failed_when: false
+  ignore_errors: true
+  with_items: "{{ project.secrets }}"
+
+- name: Display Secret results
+  debug:
+    msg: "Secret {{ item.item }} exists in project {{ project.name }}"
+  when: "'not found' not in item.stderr"
+  with_items: "{{ secret_result.results }}"
+
+- name: Check Operators
+  command: "oc get operators {{ item }}"
+  register: operator_result
+  failed_when: false
+  ignore_errors: true
+  with_items: "{{ project.operators }}"
+
+- name: Display Operator results
+  debug:
+    msg: "Operator {{ item.item }} exists in project {{ project.name }}"
+  when: "'not found' not in item.stderr"
+  with_items: "{{ operator_result.results }}"

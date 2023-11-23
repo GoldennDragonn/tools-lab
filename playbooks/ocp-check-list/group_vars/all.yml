@@ -1,0 +1,29 @@
+# group_vars/all.yml
+projects:
+  - name: rafael-adlg-cicd
+    configmaps:
+      - trusted-ca
+    secrets:
+      - ts1
+      - ts2
+      - ts3
+    operators:
+      - sealedSecrets
+  - name: rafael-adlg-test
+    configmaps:
+      - trusted-ca
+    secrets:
+      - ts1
+      - ts2
+      - ts3
+    operators:
+      - sealedSecrets
+  - name: rafael-tsgs-cicd-flight
+    configmaps:
+      - trusted-ca
+    secrets:
+      - tsgs-registry
+      - ts2
+      - ts3
+    operators:
+      - sealedSecrets

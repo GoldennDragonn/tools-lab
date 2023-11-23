@@ -1,0 +1,60 @@
+---
+- name: Set up user with sudo privileges and Copy SSH Key to Target Servers
+  hosts: all
+  vars:
+    # Using predefined variables directly, assuming they've been set elsewhere
+    ansible_user: "root"
+    ansible_ssh_pass: "admin"
+    new_user: "beder"
+    salt: "{{ lookup('password', '/dev/null length=7 chars=ascii_letters,digits') }}"
+    new_user_password: "{{ 'beder' | password_hash('sha512', salt) }}"
+  become: yes
+  tasks:
+    - name: Check if the new user exists
+      command: id "{{ new_user }}"
+      register: user_exists
+      failed_when: false
+      changed_when: false
+
+    - name: Create new user with sudo privileges
+      user:
+        name: "{{ new_user }}"
+        groups: sudo
+        append: yes
+        create_home: yes
+        shell: /bin/bash
+        password: "{{ new_user_password }}"
+      when: user_exists.rc != 0
+
+    - name: Ensure .ssh directory exists for new user
+      file:
+        path: "/home/{{ new_user }}/.ssh"
+        state: directory
+        mode: '0700'
+        owner: "{{ new_user }}"
+        group: "{{ new_user }}"
+      when: user_exists.rc != 0
+
+    - name: Copy SSH public key to new user's authorized_keys
+      copy:
+        src: "~/.ssh/id_rsa.pub"
+        dest: "/home/{{ new_user }}/.ssh/authorized_keys"
+        owner: "{{ new_user }}"
+        mode: '0600'
+        force: yes
+
+    - name: Ensure .ssh directory exists for root
+      file:
+        path: "/root/.ssh"
+        state: directory
+        mode: '0700'
+        owner: "root"
+        group: "root"
+
+    - name: Copy SSH public key to root's authorized_keys
+      copy:
+        src: "~/.ssh/id_rsa.pub"
+        dest: "/root/.ssh/authorized_keys"
+        owner: "root"
+        mode: '0600'
+        force: yes

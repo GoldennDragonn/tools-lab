@@ -1,0 +1,8 @@
+---
+- hosts: localhost
+  gather_facts: false
+  tasks:
+    - include_tasks: project_resource_check.yml
+      loop: "{{ projects }}"
+      loop_control:
+        loop_var: project

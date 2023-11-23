@@ -1,0 +1,12 @@
+
+vcenter_server: 'your_vcenter_server'
+vcenter_username: 'your_username'
+vcenter_password: 'your_password'
+datacenter: 'DatacenterName'
+cluster: 'ClusterName'
+folder: /vm/
+template_name: ocp-rhcos41037-template
+network_name: 'VM Network'
+netmask: '255.255.255.0'
+gateway: '192.168.56.1'
+domain: 'domain.local, yb.domain.local'
