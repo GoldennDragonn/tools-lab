@@ -10,3 +10,4 @@ brew install tflint
 brew install terraform-ls
 :TSInstall terraform
 :TSInstall hcl
+update git
